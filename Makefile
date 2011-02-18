@@ -1,6 +1,6 @@
 LD=-lusb-1.0
 CC=gcc
-CFLAGS=-Os
+CFLAGS=-Os -std=c99
 LINKS=-lm
 
 usbscale: usbscale.c scales.h
