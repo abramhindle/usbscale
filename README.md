@@ -32,6 +32,9 @@ product IDs to **scales.h**. In any case, you should contact me (see below) so
 that I can add your new scale to the main source code to benefit all users who
 may have the same scale.
 
+Abram Hindle has added support to read from multiple scales on each attempt.
+He's had weird interactions with other USB devices as well, especially webcams. 
+
 License
 -------
 
