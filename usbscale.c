@@ -289,6 +289,7 @@ static int print_scale_data(int n,unsigned char* dat) {
     uint8_t unit   = dat[2];
     uint8_t expt   = dat[3];
     double weight = (double)(dat[4] + (dat[5] << 8)) / 10;
+    //double weight = (double)(dat[4] + (dat[5] << 8)) ;
     if(expt != 255 && expt != 0) {
         weight = pow(weight, expt);
     }
@@ -324,7 +325,7 @@ static int print_scale_data(int n,unsigned char* dat) {
         // the `UNITS` lookup table for unit names.
         //
         case 0x04:
-            printf("%d: %ld %s\n", n, weight, UNITS[unit]);
+            printf("%d: %g %s\n", n, weight, UNITS[unit]);
             return 0;
         case 0x05:
             if(status != lastStatus)
@@ -435,10 +436,10 @@ static int find_scales(libusb_device **devs, libusb_device ** outScales, int n)
         int r = libusb_get_device_descriptor(dev, &desc);
         if (r < 0) {
             fprintf(stderr, "failed to get device descriptor");
-            return;
+            return -1;
         }
         int j;
-        for (j = 0; j < scalesc; j++) {
+        for (j = 0; j < NSCALES; j++) {
             if(desc.idVendor  == scales[j][0] && 
                desc.idProduct == scales[j][1]) {
         	fprintf(stderr, "find_scale: %d\n", o);
