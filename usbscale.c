@@ -64,7 +64,7 @@ static int find_scales( libusb_device ** devs, libusb_device ** outScales, int n
 // it, printing out the result to the screen. It also returns a 1 if the
 // program should read again (i.e. continue looping).
 //
-static int print_scale_data(int n,char*);
+static int print_scale_data(int n,unsigned char*);
 //
 // **UNITS** is an array of all the unit abbreviations as set forth by *HID
 // Point of Sale Usage Tables*, version 1.02, by the USB Implementers' Forum.
@@ -160,31 +160,43 @@ int main(void)
 #ifdef __linux__
         libusb_detach_kernel_driver(handle , 0);
 #endif
-        //
-        // Finally, we can claim the interface to this device and begin I/O.
-        //
-        libusb_claim_interface(handle , 0);
-    //}
-    //fprintf(stderr, "USBs opened\n");
+    //
+    // Finally, we can claim the interface to this device and begin I/O.
+    //
+    libusb_claim_interface(handle, 0);
 
 
-    //for (int scaleI = 0 ; scaleI < nscales; scaleI++ ) {
-        //handle = handles[ scaleI ];
-        /*
-         * Try to transfer data about status
-         *
-         * http://rowsandcolumns.blogspot.com/2011/02/read-from-magtek-card-swipe-reader-in.html
-         */
-        unsigned char data[WEIGH_REPORT_SIZE];
-        unsigned int len;
-        int continue_reading = 0;
-        
-        // 
-        // We read data from the scale in an infinite loop, stopping when
-        // **print_scale_data** tells us that it's successfully gotten the weight
-        // from the scale, or if the scale or transmissions indicates an error.
-        //
-        for(;;) {
+
+    /*
+     * Try to transfer data about status
+     *
+     * http://rowsandcolumns.blogspot.com/2011/02/read-from-magtek-card-swipe-reader-in.html
+     */
+    unsigned char data[WEIGH_REPORT_SIZE];
+    int len;
+    int scale_result = -1;
+    
+    //
+    // For some reason, we get old data the first time, so let's just get that
+    // out of the way now. It can't hurt to grab another packet from the scale.
+    //
+    r = libusb_interrupt_transfer(
+        handle,
+        //bmRequestType => direction: in, type: class,
+                //    recipient: interface
+        LIBUSB_ENDPOINT_IN | //LIBUSB_REQUEST_TYPE_CLASS |
+            LIBUSB_RECIPIENT_INTERFACE,
+        data,
+        WEIGH_REPORT_SIZE, // length of data
+        &len,
+        10000 //timeout => 10 sec
+        );
+    // 
+    // We read data from the scale in an infinite loop, stopping when
+    // **print_scale_data** tells us that it's successfully gotten the weight
+    // from the scale, or if the scale or transmissions indicates an error.
+    //
+    for(;;) {
             //
             // A `libusb_interrupt_transfer` of 6 bytes from the scale is the
             // typical scale data packet, and the usage is laid out in *HID Point
@@ -259,7 +271,7 @@ int main(void)
 // the scale data indicates that some error occurred and that the program
 // should terminate.
 //
-static int print_scale_data(int n, char* dat) {
+static int print_scale_data(int n,unsigned char* dat) {
 
     // 
     // We keep around `lastStatus` so that we're not constantly printing the
@@ -276,7 +288,7 @@ static int print_scale_data(int n, char* dat) {
     uint8_t status = dat[1];
     uint8_t unit   = dat[2];
     uint8_t expt   = dat[3];
-    long weight = dat[4] + (dat[5] << 8);
+    double weight = (double)(dat[4] + (dat[5] << 8)) / 10;
     if(expt != 255 && expt != 0) {
         weight = pow(weight, expt);
     }
@@ -364,10 +376,10 @@ static libusb_device* find_scale(libusb_device **devs)
         int r = libusb_get_device_descriptor(dev, &desc);
         if (r < 0) {
             fprintf(stderr, "failed to get device descriptor");
-            return;
+            return NULL;
         }
         int i;
-        for (i = 0; i < scalesc; i++) {
+        for (i = 0; i < NSCALES; i++) {
             if(desc.idVendor  == scales[i][0] && 
                desc.idProduct == scales[i][1]) {
                 /*
@@ -409,6 +421,7 @@ static libusb_device* find_scale(libusb_device **devs)
             }
         }
     }
+    return NULL;
 }
 /* scales is an array of usbdevice * */
 /* n is how many scales */

@@ -1,13 +1,15 @@
-LD=-lusb-1.0
+LDLIBS=-lm -lusb-1.0
 CC=gcc
-CFLAGS=-Os -std=c99
+CFLAGS=-Os -std=c99 -Wall
 LINKS=-lm
+DOCCO=docco
 
 usbscale: usbscale.c scales.h
-	$(CC) usbscale.c -o usbscale $(LINKS) $(CFLAGS) $(LD)
 
-lsscale: lsscale.c scales.h
-	$(CC) lsscale.c -o lsscale $(CFLAGS) $(LD)
+lsusb: lsusb.c scales.h
+
+docs: usbscale.c
+	docco usbscale.c
 
 clean:
 	rm -f lsscale
